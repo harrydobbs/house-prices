@@ -13,16 +13,39 @@ from sklearn.metrics import make_scorer
 from sklearn.model_selection import KFold, cross_val_score
 from sklearn.metrics import mean_squared_error
 
-def find_bad_columns(df):
-    """ Inspect data for missing values etc """
-    null_columns = []
-    for col in df.columns:
-        missing_values = df[col].isnull()
-        if missing_values.sum() > 100:
-            print(f"{col} has {missing_values.sum()} missing values")
- 
+def eda(df):
+    print(df.shape)
+    print(df.info)
+    print("Skewness: %f" % df['SalePrice'].skew())
+    print("Kurtosis: %f" % df['SalePrice'].kurt())
+    
+    # Look at average year built and sale price in each zone
+    grouped = df['YearBuilt'].groupby(df['MSZoning'])
+    print(grouped.mean())
+    grouped = df['SalePrice'].groupby(df['MSZoning'])
+    print(grouped.mean())
 
-def preprocess(df ):
+    # Lets look at the skew of the saleprice so we are aware of bias...
+    ax = sns.histplot(df['SalePrice'])
+
+    """ Check for important features -> use correlation matrix """
+    corrmat = df.corr()
+    f, ax = plt.subplots(figsize=(12, 9))
+    sns.heatmap(corrmat, vmax=.8, square=True);
+    
+    corr = df.corr()
+    highest_corr_features = corr.index[(corr["SalePrice"])>0.5]
+    plt.figure(figsize=(10,10))
+    g = sns.heatmap(df[highest_corr_features].corr(),annot=True,cmap="RdYlGn")
+    print(corr["SalePrice"].sort_values(ascending=False))
+
+    # Features with highest values 
+    cols = ['SalePrice', 'OverallQual', 'GrLivArea', 'GarageCars', 'TotalBsmtSF', 'FullBath', 'YearBuilt']
+    sns.pairplot(df[cols])
+    plt.show()
+
+
+def preprocess(df):
     categorical_cols = ["LotConfig","LotArea","LandSlope","Neighborhood","Condition1",\
                        "Condition2","BldgType","HouseStyle","RoofStyle","RoofMatl",\
                        "Exterior1st","Exterior2nd","MasVnrType","ExterQual","ExterCond",\
@@ -53,7 +76,7 @@ def preprocess(df ):
     df['SaleType'].fillna('None', inplace=True)
     df['MSZoning'].fillna('None', inplace=True)
 
-    """ Mean value of lotarea is too large, needs to be harmonized wiht other features"""
+    """ Mean value of lotarea is too large, needs to be harmonized with other features"""
     df['LotArea'] = np.log1p(df['LotArea'])
 
     df['LotFrontage'].fillna(np.mean(df['LotFrontage']), inplace=True)
@@ -64,54 +87,33 @@ def preprocess(df ):
         encoder = LabelEncoder()
         df[col] = encoder.fit_transform(df[col])
     
-
     df['MasVnrArea'] = df['MasVnrArea'].astype(int)
+
+    df.drop_duplicates()
     return df
+
 
 def remove_skew(df):
     numeric_feats = df.dtypes[df.dtypes != 'object'].index
     skewed_feats = df[numeric_feats].apply(lambda x: skew(x)).sort_values(ascending=False)
     high_skew = skewed_feats[abs(skewed_feats) > 0.5]
-    
     for feature in high_skew.index:
         df[feature] = np.log1p(df[feature])
     return df
 
 
-def rmse_CV_train(model):
-    kf = KFold(5,shuffle=True,random_state=42).get_n_splits(x_train.values)
-    rmse = np.sqrt(-cross_val_score(model, x_train, y_train,scoring ="neg_mean_squared_error",cv=kf))
-    return (rmse)
-def rmse_CV_test(model):
-    kf = KFold(5,shuffle=True,random_state=42).get_n_splits(train.values)
-    rmse = np.sqrt(-cross_val_score(model, x_test, y_test,scoring ="neg_mean_squared_error",cv=kf))
-    return (rmse)
+def preprocess_data(train_data_location, test_data_location):
 
-def main():
-    train_data_location = "data/train.csv"
-    test_data_location = "data/test.csv"
-
+    # Load Data Frames
     train_df = pd.read_csv(train_data_location)
     test_df = pd.read_csv(test_data_location)
     
-    print(train_df.shape)
-    #print(train_df.info)
-    #print("Skewness: %f" % train_df['SalePrice'].skew())
-    #print("Kurtosis: %f" % train_df['SalePrice'].kurt())
     train_df['SalePrice'] = np.log1p(train_df['SalePrice'])
 
-    # Look at average year built and sale price in each zone
-    grouped = train_df['YearBuilt'].groupby(train_df['MSZoning'])
-    #print(grouped.mean())
+    # Inspect data 
+    eda(train_df)
 
-    grouped = train_df['SalePrice'].groupby(train_df['MSZoning'])
-    #print(grouped.mean())
-
-    # Lets look at the skew of the saleprice so we are aware of bias...
-    #ax = sns.histplot(train_df['SalePrice'])
-    #plt.show()
-    
-    find_bad_columns(train_df)
+    print(train_df.isnull().sum())
     null_cols = ["Alley","PoolQC","Fence","MiscFeature","FireplaceQu"]
 
     """ Drop Features with lots of nulls"""
@@ -120,29 +122,6 @@ def main():
     
     train_df = preprocess(train_df)
     test_df = preprocess(test_df)
-
-    """ Remove duplicates """
-    #print("former shape: ", train_df.shape, " test : ", test_df.shape)
-    train_df.drop_duplicates()
-    test_df.drop_duplicates()
-    #print("latter shape: ", train_df.shape, " test : ", test_df.shape)
-
-    """ Check for important features -> use correlation matrix """
-    corrmat = train_df.corr()
-    f, ax = plt.subplots(figsize=(12, 9))
-    sns.heatmap(corrmat, vmax=.8, square=True);
-    
-    # View Important Features
-    corr = train_df.corr()
-    highest_corr_features = corr.index[(corr["SalePrice"])>0.5]
-    plt.figure(figsize=(10,10))
-    g = sns.heatmap(train_df[highest_corr_features].corr(),annot=True,cmap="RdYlGn")
-    #print(corr["SalePrice"].sort_values(ascending=False))
-
-    # Features with highest values 
-    cols = ['SalePrice', 'OverallQual', 'GrLivArea', 'GarageCars', 'TotalBsmtSF', 'FullBath', 'YearBuilt']
-    sns.pairplot(train_df[cols])
-    #plt.show()
 
     # Overall Quality is highest correlation, garagecars and area are the same...
     # Total BsmtSF and 1stFlrSF are like each other 
@@ -155,7 +134,14 @@ def main():
     train_df['TotalSF'] = train_df['TotalBsmtSF'] + train_df['1stFlrSF'] + train_df['2ndFlrSF']
     test_df['TotalSF'] = test_df['TotalBsmtSF'] + test_df['1stFlrSF'] + test_df['2ndFlrSF']
 
+
+
+
+
     scorer = make_scorer(mean_squared_error,greater_is_better = False)
+
+
+
 
     the_model = XGB.XGBRegressor(colsample_bytree=0.4603, gamma=0.0468, 
                                 learning_rate=0.05, max_depth=3, 
@@ -177,4 +163,6 @@ def main():
     sub.to_csv('mysubmission.csv',index=False)
 
 if __name__ == "__main__":
-    main()
+   train_data_location = "data/train.csv"
+   test_data_location = "data/test.csv"
+   preprocess_data(train_data_location, test_data_location)
