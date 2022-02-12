@@ -63,6 +63,7 @@ def preprocess(df ):
     for col in categorical_cols:
         encoder = LabelEncoder()
         df[col] = encoder.fit_transform(df[col])
+    
 
     df['MasVnrArea'] = df['MasVnrArea'].astype(int)
     return df
@@ -92,18 +93,19 @@ def main():
 
     train_df = pd.read_csv(train_data_location)
     test_df = pd.read_csv(test_data_location)
-
-    print(train_df.info)
-    print("Skewness: %f" % train_df['SalePrice'].skew())
-    print("Kurtosis: %f" % train_df['SalePrice'].kurt())
+    
+    print(train_df.shape)
+    #print(train_df.info)
+    #print("Skewness: %f" % train_df['SalePrice'].skew())
+    #print("Kurtosis: %f" % train_df['SalePrice'].kurt())
     train_df['SalePrice'] = np.log1p(train_df['SalePrice'])
 
     # Look at average year built and sale price in each zone
     grouped = train_df['YearBuilt'].groupby(train_df['MSZoning'])
-    print(grouped.mean())
+    #print(grouped.mean())
 
     grouped = train_df['SalePrice'].groupby(train_df['MSZoning'])
-    print(grouped.mean())
+    #print(grouped.mean())
 
     # Lets look at the skew of the saleprice so we are aware of bias...
     #ax = sns.histplot(train_df['SalePrice'])
@@ -120,10 +122,10 @@ def main():
     test_df = preprocess(test_df)
 
     """ Remove duplicates """
-    print("former shape: ", train_df.shape, " test : ", test_df.shape)
+    #print("former shape: ", train_df.shape, " test : ", test_df.shape)
     train_df.drop_duplicates()
     test_df.drop_duplicates()
-    print("latter shape: ", train_df.shape, " test : ", test_df.shape)
+    #print("latter shape: ", train_df.shape, " test : ", test_df.shape)
 
     """ Check for important features -> use correlation matrix """
     corrmat = train_df.corr()
@@ -135,7 +137,7 @@ def main():
     highest_corr_features = corr.index[(corr["SalePrice"])>0.5]
     plt.figure(figsize=(10,10))
     g = sns.heatmap(train_df[highest_corr_features].corr(),annot=True,cmap="RdYlGn")
-    print(corr["SalePrice"].sort_values(ascending=False))
+    #print(corr["SalePrice"].sort_values(ascending=False))
 
     # Features with highest values 
     cols = ['SalePrice', 'OverallQual', 'GrLivArea', 'GarageCars', 'TotalBsmtSF', 'FullBath', 'YearBuilt']
@@ -150,7 +152,7 @@ def main():
     train_df = remove_skew(train_df)
     test_df = remove_skew(test_df)
 
-    train_df['1stFlrSF'] = train_df['TotalBsmtSF'] + train_df['1stFlrSF'] + train_df['2ndFlrSF']
+    train_df['TotalSF'] = train_df['TotalBsmtSF'] + train_df['1stFlrSF'] + train_df['2ndFlrSF']
     test_df['TotalSF'] = test_df['TotalBsmtSF'] + test_df['1stFlrSF'] + test_df['2ndFlrSF']
 
     scorer = make_scorer(mean_squared_error,greater_is_better = False)
@@ -162,10 +164,17 @@ def main():
                                 subsample=0.5213, random_state =7, nthread = -1)
     
     y_train = train_df['SalePrice']
+    train_df = train_df.drop(['Id', 'SalePrice'], axis=1)
+    sub = pd.DataFrame()
+    sub['Id'] = test_df['Id']
+    test_df = test_df.drop(['Id'], axis=1)
+
     the_model.fit(train_df, y_train)
 
     y_predict = np.floor(np.expm1(the_model.predict(test_df)))
     print(y_predict)
+    sub['SalePrice'] = y_predict
+    sub.to_csv('mysubmission.csv',index=False)
 
 if __name__ == "__main__":
     main()
