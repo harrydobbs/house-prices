@@ -13,7 +13,7 @@ def main():
    test_data_location = "data/test.csv"
    train_df, test_df = preprocess_data(train_data_location, test_data_location)
 
-   xgb_param = {'learning_rate': 0.03,
+   xgb_param = {'learning_rate': 0.02,
                 'max_depth': 40,
                 'verbosity': 3,
                 'nthread': 5,
