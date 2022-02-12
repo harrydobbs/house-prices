@@ -4,9 +4,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
-import xgboost as XGB
 
-from xgboost import XGBRegressor
 from scipy.stats import norm, skew
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import make_scorer

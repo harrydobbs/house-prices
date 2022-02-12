@@ -1,7 +1,9 @@
 import pandas as pd
 
 from preprocessing import *
+import xgboost as XGB
 
+from xgboost import XGBRegressor
 
 def rmsle(y, y_pred):
     return np.sqrt(mean_squared_error(y, y_pred))
@@ -39,10 +41,11 @@ def main():
    sub['Id'] = test_df['Id']
    test_df = test_df.drop(['Id'], axis=1)
 
-   model_xgb.fit(train_df, y_train)
+   train = model_xgb.fit(train_df, y_train)
    xgb_train_pred = model_xgb.predict(train_df)
    print(rmsle(y_train, xgb_train_pred))
-
+   XGB.plot_importance(model_xgb)
+   plt.show()
    y_predict = np.floor(np.expm1(model_xgb.predict(test_df)))
    print(y_predict)
    sub['SalePrice'] = y_predict
