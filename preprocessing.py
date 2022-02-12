@@ -13,39 +13,8 @@ from sklearn.metrics import make_scorer
 from sklearn.model_selection import KFold, cross_val_score
 from sklearn.metrics import mean_squared_error
 
-def eda(df):
-    print(df.shape)
-    print(df.info)
-    print("Skewness: %f" % df['SalePrice'].skew())
-    print("Kurtosis: %f" % df['SalePrice'].kurt())
-    
-    # Look at average year built and sale price in each zone
-    grouped = df['YearBuilt'].groupby(df['MSZoning'])
-    print(grouped.mean())
-    grouped = df['SalePrice'].groupby(df['MSZoning'])
-    print(grouped.mean())
 
-    # Lets look at the skew of the saleprice so we are aware of bias...
-    ax = sns.histplot(df['SalePrice'])
-
-    """ Check for important features -> use correlation matrix """
-    corrmat = df.corr()
-    f, ax = plt.subplots(figsize=(12, 9))
-    sns.heatmap(corrmat, vmax=.8, square=True);
-    
-    corr = df.corr()
-    highest_corr_features = corr.index[(corr["SalePrice"])>0.5]
-    plt.figure(figsize=(10,10))
-    g = sns.heatmap(df[highest_corr_features].corr(),annot=True,cmap="RdYlGn")
-    print(corr["SalePrice"].sort_values(ascending=False))
-
-    # Features with highest values 
-    cols = ['SalePrice', 'OverallQual', 'GrLivArea', 'GarageCars', 'TotalBsmtSF', 'FullBath', 'YearBuilt']
-    sns.pairplot(df[cols])
-    plt.show()
-
-
-def preprocess(df):
+def clean_df(df):
     categorical_cols = ["LotConfig","LotArea","LandSlope","Neighborhood","Condition1",\
                        "Condition2","BldgType","HouseStyle","RoofStyle","RoofMatl",\
                        "Exterior1st","Exterior2nd","MasVnrType","ExterQual","ExterCond",\
@@ -102,65 +71,89 @@ def remove_skew(df):
     return df
 
 
+def eda(df):
+    print(df.shape)
+    print(df.info)
+    print("Skewness: %f" % df['SalePrice'].skew())
+    print("Kurtosis: %f" % df['SalePrice'].kurt())
+    
+    # Look at average year built and sale price in each zone
+    grouped = df['YearBuilt'].groupby(df['MSZoning'])
+    print(grouped.mean())
+    grouped = df['SalePrice'].groupby(df['MSZoning'])
+    print(grouped.mean())
+
+    # Lets look at the skew of the saleprice so we are aware of bias...
+    ax = sns.histplot(df['SalePrice'])
+
+    """ Check for important features -> use correlation matrix """
+    corrmat = df.corr()
+    f, ax = plt.subplots(figsize=(12, 9))
+    sns.heatmap(corrmat, vmax=.8, square=True);
+    
+    corr = df.corr()
+    highest_corr_features = corr.index[(corr["SalePrice"])>0.5]
+    plt.figure(figsize=(10,10))
+    g = sns.heatmap(df[highest_corr_features].corr(),annot=True,cmap="RdYlGn")
+    g.set_title('Correlation Heatmap', fontdict={'fontsize':8}, pad=12)
+    print(corr["SalePrice"].sort_values(ascending=False))
+
+    # Features with highest values 
+    cols = ['SalePrice', 'OverallQual', 'GrLivArea', 'GarageCars', 'TotalBsmtSF', 'FullBath', 'YearBuilt']
+    sns.pairplot(df[cols])
+    plt.show()
+
+
+def add_features(df):
+    df['house_age1'] = df['YrSold'] - df['YearBuilt']
+    df['house_age2'] = df['YrSold'] - df['YearRemodAdd']
+    df['garage_age'] = df['YrSold'] - df['GarageYrBlt']
+    
+    df['total_area'] = np.log1p(df['GrLivArea'] + df['TotalBsmtSF'] + df['1stFlrSF'] + df['2ndFlrSF'])
+    df['num_rooms'] = df['TotRmsAbvGrd'] + df['BedroomAbvGr'] + df['FullBath']
+    return df
+
+
+
 def preprocess_data(train_data_location, test_data_location):
 
     # Load Data Frames
     train_df = pd.read_csv(train_data_location)
     test_df = pd.read_csv(test_data_location)
     
+    # It is observed that Sale Price is right skewed, so we do a log 
+    # transformation
     train_df['SalePrice'] = np.log1p(train_df['SalePrice'])
 
-    # Inspect data 
-    eda(train_df)
-
+    """ Drop Features with lots of nulls"""
     print(train_df.isnull().sum())
     null_cols = ["Alley","PoolQC","Fence","MiscFeature","FireplaceQu"]
-
-    """ Drop Features with lots of nulls"""
     train_df.drop(columns=null_cols, inplace=True)
     test_df.drop(columns=null_cols, inplace=True)
     
-    train_df = preprocess(train_df)
-    test_df = preprocess(test_df)
-
-    # Overall Quality is highest correlation, garagecars and area are the same...
-    # Total BsmtSF and 1stFlrSF are like each other 
-    # Total Rms abv grd and grliv area have strong correlation 
-
-    # Fix Skew in data...
+    train_df = clean_df(train_df)
+    test_df = clean_df(test_df)
     train_df = remove_skew(train_df)
     test_df = remove_skew(test_df)
 
-    train_df['TotalSF'] = train_df['TotalBsmtSF'] + train_df['1stFlrSF'] + train_df['2ndFlrSF']
-    test_df['TotalSF'] = test_df['TotalBsmtSF'] + test_df['1stFlrSF'] + test_df['2ndFlrSF']
+    # Inspect data 
+    eda(train_df)
+    add_features(train_df)
+    add_features(test_df)
+
+    train_df['YrSold'] = train_df['YrSold'].replace({2008:2, 
+                                                 2007:1, 
+                                                 2006:0, 
+                                                 2009:3, 
+                                                 2010:4})
+    test_df['YrSold'] = test_df['YrSold'].replace({2008:2, 
+                                                 2007:1, 
+                                                 2006:0, 
+                                                 2009:3, 
+                                                 2010:4})
+    return train_df, test_df
 
 
-
-
-
-    scorer = make_scorer(mean_squared_error,greater_is_better = False)
-
-
-
-
-    the_model = XGB.XGBRegressor(colsample_bytree=0.4603, gamma=0.0468, 
-                                learning_rate=0.05, max_depth=3, 
-                                min_child_weight=1.7817, n_estimators=2200,
-                                reg_alpha=0.4640, reg_lambda=0.8571,
-                                subsample=0.5213, random_state =7, nthread = -1)
-    
-    y_train = train_df['SalePrice']
-    train_df = train_df.drop(['Id', 'SalePrice'], axis=1)
-    sub = pd.DataFrame()
-    sub['Id'] = test_df['Id']
-    test_df = test_df.drop(['Id'], axis=1)
-
-    the_model.fit(train_df, y_train)
-
-    y_predict = np.floor(np.expm1(the_model.predict(test_df)))
-    print(y_predict)
-    sub['SalePrice'] = y_predict
-    sub.to_csv('mysubmission.csv',index=False)
 
 if __name__ == "__main__":
    train_data_location = "data/train.csv"
