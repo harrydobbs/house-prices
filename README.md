@@ -23,7 +23,7 @@ Each tree boosts attributes that led to misclassifications of previous tree. It 
 XGBoost builds the first model and calculates the error for each observation in the dataset. It then builds a new model
 to predict those errors (residuals). These errors are then used to correct (by a factor of the learning rate) the model by creating a new tree. 
 You are building a model based on the previous errors. This process gets repeately done.
-A good video explaining this in further detail can be found <a href="https://www.youtube.com/watch?v=PxgVFp5a0E4">>here</a>.
+A good video explaining this in further detail can be found <a href="https://www.youtube.com/watch?v=PxgVFp5a0E4">here</a>.
 <a href="https://stats.stackexchange.com/questions/173390/gradient-boosting-tree-vs-random-forest">Here</a> is a good reference explaining difference between RF and Gradient Boosting.
 <h3> How is XGBoost different to boosting?</h3>
  <ul>
