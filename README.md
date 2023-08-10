@@ -12,7 +12,7 @@ Here are a few finding that were discovered during the EDA stage.
 <h2> What is XGBoost and how does it work? </h2>
 <p> XGBoost stands for eXtreme Gradient Boosted trees. It 
 is a popular machine learning method, which regularly wins kaggle competitions.
-It is an ensemble method (takes a model and make multiple versions of it chained together).
+It is an ensemble method (takes a model and make multiple versions of it combined together).
 Each tree boosts attributes that led to misclassifications of previous tree. It has various useful features:
  <ul>
   <li>Regularized boosting (prevents overfitting).</li>
