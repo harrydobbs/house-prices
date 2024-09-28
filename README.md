@@ -17,13 +17,6 @@ XGBoost stands for eXtreme Gradient Boosted trees. It is renowned in the machine
 - Cross-validation capabilities at each iteration.
 - Advanced tree pruning techniques.
 
-For an in-depth understanding of XGBoost, watch this explanatory [video](https://www.youtube.com/watch?v=PxgVFp5a0E4). Also, see this [Stats StackExchange post](https://stats.stackexchange.com/questions/173390/gradient-boosting-tree-vs-random-forest) for a comparison with Random Forest and traditional Gradient Boosting.
+For an in-depth understanding of XGBoost, watch this explanatory [video](https://www.youtube.com/watch?v=PxgVFp5a0E4). Also, see this [Stats StackExchange post](https://stats.stackexchange.com/questions/173390/gradient-boosting-tree-vs-random-forest) for comparison with Random Forest and traditional Gradient Boosting.
 
-### How is XGBoost Different from Traditional Boosting?
-- XGBoost leverages second-order gradient information to find the optimal direction for reducing errors.
-- It incorporates both L1 and L2 regularization, enhancing model performance.
-- Parallelized tree construction boosts computational speed.
-
-## Future Plans
-- Experimentation with deep learning models, possibly using neural networks with frameworks like TensorFlow or PyTorch, to compare their efficacy against traditional machine learning approaches in house price prediction.
 
